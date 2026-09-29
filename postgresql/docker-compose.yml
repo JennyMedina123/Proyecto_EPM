@@ -1,0 +1,24 @@
+services:
+  postgres-epm:
+    image: postgres:16
+    container_name: postgres-epm
+    environment:
+      POSTGRES_USER: epm
+      POSTGRES_PASSWORD: epm2026
+      POSTGRES_DB: epm_iot
+      TZ: America/Bogota
+      PGTZ: America/Bogota
+    shm_size: 1g
+    # Recursos fijos para que las mediciones sean comparables entre equipos
+    cpus: 2
+    mem_limit: 4g
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./sql:/scripts        # scripts SQL del reto
+      - ./data:/data          # CSV generado por Python
+      - ./bench:/bench        # pruebas de carga (pgbench)
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
