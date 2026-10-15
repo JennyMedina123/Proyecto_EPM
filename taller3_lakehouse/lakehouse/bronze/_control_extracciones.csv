@@ -1,0 +1,15 @@
+lote,extraido_en,fuente,archivo,filas
+20261015_094622,2026-10-15 09:46:22,sqlite,catalogo/central/central_20261015_094622.parquet,3
+20261015_094622,2026-10-15 09:46:22,sqlite,catalogo/turbina/turbina_20261015_094622.parquet,20
+20261015_094622,2026-10-15 09:46:22,sqlite,catalogo/sensor/sensor_20261015_094622.parquet,80
+20261015_094622,2026-10-15 09:46:22,sqlite,catalogo/sensor_auditoria/sensor_auditoria_20261015_094622.parquet,85
+20261015_094622,2026-10-15 09:46:22,sqlite,lecturas_sensor/fecha=2026-10-12/lecturas_20261015_094622.parquet,13705
+20261015_094622,2026-10-15 09:46:22,sqlite,lecturas_sensor/fecha=2026-10-13/lecturas_20261015_094622.parquet,23001
+20261015_094622,2026-10-15 09:46:23,sqlite,lecturas_sensor/fecha=2026-10-14/lecturas_20261015_094622.parquet,23015
+20261015_094622,2026-10-15 09:46:23,sqlite,lecturas_sensor/fecha=2026-10-15/lecturas_20261015_094622.parquet,23002
+20261015_094622,2026-10-15 09:46:23,sqlite,lecturas_sensor/fecha=2026-10-16/lecturas_20261015_094622.parquet,3910
+20261015_095301,2026-10-15 09:53:01,sqlite,catalogo/central/central_20261015_095301.parquet,3
+20261015_095301,2026-10-15 09:53:01,sqlite,catalogo/turbina/turbina_20261015_095301.parquet,20
+20261015_095301,2026-10-15 09:53:01,sqlite,catalogo/sensor/sensor_20261015_095301.parquet,80
+20261015_095301,2026-10-15 09:53:01,sqlite,catalogo/sensor_auditoria/sensor_auditoria_20261015_095301.parquet,85
+20261015_095301,2026-10-15 09:53:01,sqlite,lecturas_sensor/fecha=2026-10-16/lecturas_20261015_095301.parquet,5744
