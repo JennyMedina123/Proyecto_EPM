@@ -13,7 +13,7 @@ con zonas Bronze / Silver / Gold en Parquet, consultado con DuckDB.
 | Zona | Responsable | Estado | Scripts |
 |---|---|---|---|
 | Simulación OLTP + Bronze | Juan Camilo Gutierrez Medina | Listo | `generar_oltp.py`, `extract.py`, `verificar_bronze.py` |
-| Silver | (pendiente) | Pendiente | `transform_silver.py` |
+| Silver | Jenny Elizabeth Medina | Implementado y validado | `transform_silver.py` |
 | Gold | (pendiente) | Pendiente | `transform_gold.py` |
 | Análisis y benchmark | (pendiente) | Pendiente | `analyze.py` |
 
@@ -54,16 +54,20 @@ Parámetros (variables de entorno): `EPM_FRECUENCIA_MIN` (5), `EPM_DIAS_INICIALE
 ## Estructura
 
 ```
-├── lakehouse/bronze/        datos crudos en Parquet (se sube al repositorio)
-├── oltp/                    base operacional simulada (NO se sube; se genera)
+├── lakehouse/
+│   ├── bronze/               datos crudos en Parquet
+│   └── silver/               datos limpios, cuarentenas e informes
+├── oltp/                     base operacional simulada
 ├── scripts/
-│   ├── config.py            rutas, conexión y parámetros compartidos
-│   ├── utilidades.py        funciones comunes
-│   ├── generar_oltp.py      simulador de sensores (fuente OLTP)
-│   ├── extract.py           OLTP -> Bronze
-│   └── verificar_bronze.py  controles y perfil de calidad
-├── docs/perfil_bronze.txt   problemas de calidad medidos en Bronze
-├── main.py                  ejecuta todo el pipeline
+│   ├── config.py             rutas y parámetros compartidos
+│   ├── utilidades.py         funciones comunes
+│   ├── generar_oltp.py       simulador de sensores
+│   ├── extract.py            OLTP -> Bronze
+│   ├── verificar_bronze.py   controles de calidad de Bronze
+│   └── transform_silver.py  transformación Bronze -> Silver
+├── docs/
+│   └── perfil_bronze.txt     perfil de calidad de Bronze
+├── main.py                  ejecuta el pipeline
 └── requirements.txt
 ```
 
@@ -88,52 +92,72 @@ cambios de configuración) y `lecturas_sensor` (estructura de la tabla de Cassan
 | `lakehouse/bronze/catalogo/<tabla>/<tabla>_<lote>.parquet` | Foto completa del catálogo en cada extracción |
 | `lakehouse/bronze/_control_extracciones.csv` | Bitácora de extracciones |
 
-## Para quien construye Silver
+## Zona Silver
 
-**Leer las lecturas de Bronze:**
+**Responsable:** Jenny Elizabeth Medina.
 
-```python
-import duckdb
-df = duckdb.sql("""
-    SELECT * FROM read_parquet('lakehouse/bronze/lecturas_sensor/*/*.parquet',
-                               hive_partitioning = true)
-""").df()
+### Objetivo
+
+La capa Silver transforma las lecturas provenientes de Bronze para mejorar su calidad, normalizar los datos y separar los registros que no cumplen las validaciones. Los datos limpios quedan preparados para su posterior utilización en Gold.
+
+### Proceso de transformación
+
+La transformación se implementó en `scripts/transform_silver.py` y realiza las siguientes operaciones:
+
+1. **Lectura de Bronze:** carga los archivos Parquet de lecturas y el catálogo de sensores más reciente.
+2. **Normalización de identificadores:** elimina espacios al inicio y al final de `sensor_id` y convierte el identificador a minúsculas.
+3. **Normalización de fechas:** convierte `timestamp` a un tipo de fecha y hora, normalizando los formatos que contienen `T`. La columna `fecha` se deriva de la fecha de la lectura.
+4. **Limpieza de mediciones:** convierte los valores centinela `-999` en valores nulos, sin imputar los datos faltantes.
+5. **Validación de rangos:** revisa las mediciones de temperatura, presión y vibración. Los valores fuera de los rangos definidos se convierten en nulos, conservando las filas.
+6. **Cuarentena por calidad:** separa los registros con identificador de sensor vacío o fecha y hora inválida.
+7. **Cuarentena de sensores:** separa las lecturas cuyo `sensor_id` no aparece en el catálogo de sensores.
+8. **Eliminación de duplicados:** identifica duplicados mediante `(sensor_id, timestamp)` y conserva el primer registro según el orden de `lectura_id`.
+9. **Generación de informes:** registra los indicadores de calidad y las estadísticas de las mediciones.
+
+### Archivos generados
+
+Los resultados se almacenan en `lakehouse/silver/`:
+
+| Archivo | Descripción |
+|---|---|
+| `lecturas_silver.parquet` | Lecturas limpias y transformadas. |
+| `cuarentena_sensores.parquet` | Registros asociados a sensores desconocidos. |
+| `cuarentena_calidad.parquet` | Registros con identificador o fecha y hora inválida. |
+| `informe_calidad.csv` | Indicadores de calidad y resultados de la transformación. |
+| `estadisticas_silver.csv` | Valores válidos, promedio, mínimo y máximo de cada medición. |
+
+### Resultados de la ejecución validada
+
+En la ejecución comprobada se obtuvieron los siguientes resultados:
+
+| Indicador | Resultado |
+|---|---:|
+| Filas originales en Bronze | 92.377 |
+| Filas resultantes en Silver | 92.085 |
+| Duplicados eliminados | 267 |
+| Sensores desconocidos en cuarentena | 25 |
+| Registros en cuarentena por clave o fecha inválida | 0 |
+| Duplicados restantes por sensor e instante | 0 |
+| Valores `-999` restantes en Silver | 0 |
+
+Los valores centinela se reemplazan por nulos y las filas se conservan. En esta ejecución no se encontraron mediciones fuera de los rangos configurados.
+
+Las estadísticas de temperatura, presión y vibración están disponibles en `estadisticas_silver.csv`. Los resultados corresponden a la ejecución validada y pueden variar si se generan nuevos datos en Bronze.
+
+### Ejecución individual
+
+Desde la carpeta `taller3_lakehouse`, ejecutar:
+
+```bash
+python scripts/transform_silver.py
 ```
 
-**Leer el catálogo:** usar el archivo más reciente de cada carpeta (el nombre termina en el lote
-`AAAAMMDD_HHMMSS`, así que el último en orden alfabético es el más nuevo).
+El script genera los archivos Parquet y CSV descritos anteriormente.
 
-**Esquema de `lecturas_sensor`:**
+### Integración con el pipeline
 
-| Columna | Tipo en Bronze | Nota |
-|---|---|---|
-| `lectura_id` | BIGINT | Único por lectura recibida (los reenvíos tienen otro id) |
-| `sensor_id` | VARCHAR | UUID; a veces en MAYÚSCULAS o con espacios al final |
-| `turbina_id` | VARCHAR | UUID de la turbina |
-| `date` | VARCHAR | Día de la lectura, `AAAA-MM-DD` |
-| `timestamp` | VARCHAR | Texto en dos formatos: `AAAA-MM-DD HH:MM:SS` y `AAAA-MM-DDTHH:MM:SS` |
-| `temperatura` | DOUBLE | °C; puede ser NULL o -999 |
-| `presion` | DOUBLE | bar; puede ser NULL |
-| `vibracion` | DOUBLE | mm/s; puede ser NULL o -999 |
-| `_extraido_en`, `_fuente`, `_lote` | auditoría | Agregadas por Bronze |
-| `fecha` | DATE | Viene del nombre de la carpeta (partición Hive) |
+El archivo `main.py` incluye el paso `Limpieza -> Silver`, que ejecuta `scripts/transform_silver.py` después de la verificación de Bronze. La integración completa con Gold y el análisis queda pendiente de los respectivos scripts.
 
-**Problemas que Silver debe resolver** (cifras actualizadas en `docs/perfil_bronze.txt`):
-
-| Problema | Aprox. | Sugerencia |
-|---|---|---|
-| `timestamp` como texto con dos formatos | 3 % con `T` | `replace(timestamp, 'T', ' ')` y convertir a TIMESTAMP |
-| `sensor_id` en mayúsculas o con espacios | 2,5 % | `lower(trim(sensor_id))` |
-| Valores -999 (error del datalogger) | 0,15 % | Convertir a NULL |
-| Nulos en las métricas | 0,4 % | No imputar; dejar NULL |
-| Duplicados (mismo sensor e instante) | 0,3 % | Conservar uno por `(sensor_id, timestamp)` |
-| Sensor que no está en el catálogo | 0,03 % | Apartar en una cuarentena |
-
-**Para Gold:** `sensor_auditoria` guarda cada cambio de firmware, umbral o equipo con su
-`fecha_cambio`. Sirve para construir `DIM_SENSOR` como SCD Tipo 2.
-
-**Para que `main.py` ejecute Silver automáticamente:** crear `scripts/transform_silver.py`, leer de
-`config.BRONZE` y escribir en `config.SILVER`.
 
 ## Integrantes
 
