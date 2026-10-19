@@ -1,0 +1,6 @@
+duckdb>=1.1
+pandas>=2.0
+numpy>=1.24
+pyarrow>=14.0
+sqlalchemy>=2.0
+psycopg2-binary>=2.9    # solo si usan PostgreSQL como fuente (EPM_OLTP_URL)
