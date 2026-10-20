@@ -1,0 +1,38 @@
+
+[Q1. Degradación: vibración diaria en cojinetes, HIT-T3 vs el resto de turbinas] — 4 filas
+     fecha  vib_HIT_T3  vib_resto  razon
+2026-10-16       4.085      3.837   1.06
+2026-10-17       4.058      3.803   1.07
+2026-10-18       4.125      3.802   1.08
+2026-10-19       4.211      3.796   1.11
+
+[Q2. Top 10 turbinas por vibración máxima] — 10 filas
+turbina  vib_maxima_mms  vib_prom_mms
+ GUA-T4            5.59         3.849
+ HIT-T3            5.57         4.073
+ GUA-T2            5.54         3.990
+ HIT-T8            5.46         4.058
+ HIT-T7            5.44         4.065
+ HIT-T5            5.42         3.941
+ POR-T1            5.41         3.983
+ GUA-T6            5.37         3.838
+ HIT-T4            5.31         3.682
+ GUA-T7            5.31         3.802
+
+Filas -> sqlite (OLTP): 68,976 | Gold (fact_lecturas): 68,770
+Mediana de 5 ejecuciones tras 1 de calentamiento
+
+Q1. Degradación: vibración diaria en cojinetes, HIT-T3 vs el resto de turbinas
+  sqlite        47.0 ms (4 filas)
+  DuckDB        12.7 ms (4 filas)  -> 3.7x
+Q2. Top 10 turbinas por vibración máxima
+  sqlite        62.6 ms (10 filas)
+  DuckDB         8.0 ms (10 filas)  -> 7.8x
+
+Tabla para el README (docs/benchmark.md):
+| Motor | Consulta | Tiempo |
+|---|---|---|
+| sqlite (OLTP, filas) | Q1. Degradación: vibración diaria en cojinetes, HIT-T3 vs el resto de turbinas | 47.0 ms |
+| DuckDB (columnar, Parquet) | Q1. Degradación: vibración diaria en cojinetes, HIT-T3 vs el resto de turbinas | 12.7 ms (3.7x más rápido) |
+| sqlite (OLTP, filas) | Q2. Top 10 turbinas por vibración máxima | 62.6 ms |
+| DuckDB (columnar, Parquet) | Q2. Top 10 turbinas por vibración máxima | 8.0 ms (7.8x más rápido) |

@@ -1,20 +1,20 @@
 ==================================================================
   PERFIL DE CALIDAD — ZONA BRONZE (lecturas_sensor, dato crudo)
 ==================================================================
-Filas en Bronze                         :    92,377
-Rango de lecturas                       : 2026-10-12 09:40:00 -> 2026-10-16 10:00:00
-Lotes de extracción                     : 2
+Filas en Bronze                         :    68,976
+Rango de lecturas                       : 2026-10-16 19:00:00 -> 2026-10-19 18:55:00
+Lotes de extracción                     : 1
 
-Nulos en temperatura                    :       364  ( 0.39 %)
-Nulos en presión                        :       367  ( 0.40 %)
-Nulos en vibración                      :       364  ( 0.39 %)
-Filas con valor centinela -999          :       133  ( 0.14 %)
-sensor_id en MAYÚSCULAS                 :     1,844  ( 2.00 %)
-sensor_id con espacios al final         :       460  ( 0.50 %)
-timestamp con formato 'AAAA-MM-DDTHH..' :     2,833  ( 3.07 %)
-Duplicados (mismo sensor e instante)    :       267  ( 0.29 %)
-Lecturas de sensores fuera del catálogo :        25  ( 0.03 %)  -> 1 sensor(es) desconocido(s)
-Completitud (filas / esperadas)         : 99.80 % de 92,560 lecturas esperadas
+Nulos en temperatura                    :       287  ( 0.42 %)
+Nulos en presión                        :       254  ( 0.37 %)
+Nulos en vibración                      :       285  ( 0.41 %)
+Filas con valor centinela -999          :        97  ( 0.14 %)
+sensor_id en MAYÚSCULAS                 :     1,447  ( 2.10 %)
+sensor_id con espacios al final         :       348  ( 0.50 %)
+timestamp con formato 'AAAA-MM-DDTHH..' :     2,083  ( 3.02 %)
+Duplicados (mismo sensor e instante)    :       190  ( 0.28 %)
+Lecturas de sensores fuera del catálogo :        16  ( 0.02 %)  -> 1 sensor(es) desconocido(s)
+Completitud (filas / esperadas)         : 99.79 % de 69,120 lecturas esperadas
 
 Recomendaciones para Silver: tipar timestamp (2 formatos), normalizar sensor_id
 (lower + trim), convertir -999 y valores fuera de rango físico en NULL, eliminar
