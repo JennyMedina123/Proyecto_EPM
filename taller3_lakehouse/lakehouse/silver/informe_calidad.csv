@@ -1,11 +1,11 @@
 indicador,cantidad
-Filas originales en Bronze,68976
-Filas válidas en Silver,68770
-Duplicados eliminados,190
-Valores centinela -999 en temperatura,34
+Filas originales en Bronze,201190
+Filas válidas en Silver,200480
+Duplicados eliminados,651
+Valores centinela -999 en temperatura,100
 Valores centinela -999 en presion,0
-Valores centinela -999 en vibracion,63
-Sensores desconocidos en cuarentena,16
+Valores centinela -999 en vibracion,202
+Sensores desconocidos en cuarentena,59
 Registros con clave o fecha inválida,0
 Temperaturas fuera de rango corregidas,0
 Presiones fuera de rango corregidas,0

@@ -1,3 +1,3 @@
 consulta,oltp_ms,duckdb_ms,mejora_x
-"Q1. Degradación: vibración diaria en cojinetes, HIT-T3 vs el resto de turbinas",46.97,12.69,3.7
-Q2. Top 10 turbinas por vibración máxima,62.61,8.02,7.81
+"Q1. Degradación: vibración diaria en cojinetes, HIT-T3 vs el resto de turbinas",147.4,16.58,8.89
+Q2. Top 10 turbinas por vibración máxima (priorizar mantenimiento),197.51,11.06,17.86

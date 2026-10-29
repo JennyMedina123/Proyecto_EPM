@@ -3,6 +3,14 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+import os
+import sys
+
+# Esto evita alertas visuales sobre la falta de extensiones de C en Windows
+os.environ['CQLSH_NO_WARN_LIBEV'] = '1'
+
+# Ahora importará sin problemas gracias a pyasyncore
+from cassandra.cluster import Cluster
 
 RAIZ = Path(__file__).resolve().parent
 
@@ -15,23 +23,26 @@ PASOS = [
     ("Análisis y Benchmark", ["scripts/analyze.py"]),
 ]
 
-
 def reset():
     sys.path.insert(0, str(RAIZ / "scripts"))
     import config as cfg
     if cfg.LAKEHOUSE.exists():
         shutil.rmtree(cfg.LAKEHOUSE)
         print("  Borrado: lakehouse/")
-    if cfg.dialecto_oltp() == "sqlite":
-        ruta = Path(cfg.OLTP_URL.replace("sqlite:///", ""))
-        if ruta.exists():
-            ruta.unlink()
-            print("  Borrado: oltp/epm_oltp.sqlite")
 
+    # Reinicio en Cassandra
+    try:
+        cluster = Cluster(['127.0.0.1'], port=9042)
+        session = cluster.connect()
+        session.execute("DROP KEYSPACE IF EXISTS epm_iot")
+        print("  Borrado: Keyspace epm_iot en Cassandra")
+        cluster.shutdown()
+    except Exception as e:
+        print(f"  Advertencia al borrar Cassandra: {e}")
 
 def main():
     print("=" * 70)
-    print("  MINI-LAKEHOUSE EPM — Telemetría IoT de centrales hidroeléctricas")
+    print("  MINI-LAKEHOUSE EPM — Telemetría IoT (Cassandra a DuckDB)")
     print("=" * 70)
     if "--reset" in sys.argv:
         reset()
@@ -50,7 +61,6 @@ def main():
         print(f"    Completado en {time.time() - t0:.1f}s")
 
     print(f"\nPipeline completo en {time.time() - t_total:.1f}s")
-
 
 if __name__ == "__main__":
     main()

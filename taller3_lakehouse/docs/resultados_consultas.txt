@@ -1,38 +1,67 @@
 
-[Q1. Degradación: vibración diaria en cojinetes, HIT-T3 vs el resto de turbinas] — 4 filas
+[Q1. Degradación: vibración diaria en cojinetes, HIT-T3 vs el resto de turbinas] — 10 filas
      fecha  vib_HIT_T3  vib_resto  razon
-2026-10-16       4.085      3.837   1.06
-2026-10-17       4.058      3.803   1.07
-2026-10-18       4.125      3.802   1.08
-2026-10-19       4.211      3.796   1.11
+2026-10-17       4.096      3.846   1.06
+2026-10-18       4.084      3.799   1.07
+2026-10-19       4.137      3.805   1.09
+2026-10-20       4.233      3.807   1.11
+2026-10-21       4.346      3.813   1.14
+2026-10-22       4.496      3.802   1.18
+2026-10-23       4.634      3.827   1.21
+2026-10-24       4.809      3.804   1.26
+2026-10-25       4.983      3.804   1.31
+2026-10-26       5.048      3.782   1.33
 
-[Q2. Top 10 turbinas por vibración máxima] — 10 filas
+[Q2. Top 10 turbinas por vibración máxima (priorizar mantenimiento)] — 10 filas
 turbina  vib_maxima_mms  vib_prom_mms
- GUA-T4            5.59         3.849
- HIT-T3            5.57         4.073
- GUA-T2            5.54         3.990
- HIT-T8            5.46         4.058
- HIT-T7            5.44         4.065
- HIT-T5            5.42         3.941
- POR-T1            5.41         3.983
- GUA-T6            5.37         3.838
- HIT-T4            5.31         3.682
- GUA-T7            5.31         3.802
+ GUA-T5           12.01         4.003
+ HIT-T5           11.83         4.016
+ GUA-T8           11.66         3.826
+ HIT-T8            6.20         4.054
+ HIT-T3            6.17         4.323
+ GUA-T4            5.65         3.838
+ GUA-T1            5.54         3.836
+ HIT-T7            5.54         4.055
+ GUA-T2            5.51         3.988
+ POR-T1            5.49         3.984
 
-Filas -> sqlite (OLTP): 68,976 | Gold (fact_lecturas): 68,770
+Versiones en dim_sensor: 86 | sensores distintos: 80 | cambios de configuración registrados: 6
+
+Controles (el resultado esperado es 0 en todos):
+  [OK] Una sola versión vigente (es_actual) por sensor: 0
+  [OK] Versiones continuas, sin huecos ni traslapes: 0
+  [OK] Vigencias válidas (fin posterior al inicio): 0
+  [OK] Lecturas fuera de la vigencia de su versión: 0
+
+Sensores con cambios de configuración y las lecturas medidas con cada versión:
+   sensor firmware fabricante  umbral_vib       vigente_desde       vigente_hasta  lecturas     primera_lectura      ultima_lectura  alertas_vib
+GUA-T3-S4     v2.1        SKF         7.1 2024-01-15 00:00:00 2026-10-23 22:49:00      1771 2026-10-17 18:45:00 2026-10-23 22:45:00            0
+GUA-T3-S4     v2.1        SKF         7.5 2026-10-23 22:49:00             vigente       743 2026-10-23 22:50:00 2026-10-26 12:40:00            0
+GUA-T5-S4     v2.1        SKF         7.1 2024-01-15 00:00:00 2026-10-25 09:18:00      2182 2026-10-17 18:45:00 2026-10-25 09:15:00           22
+GUA-T5-S4     v3.4        SKF         7.1 2026-10-25 09:18:00             vigente       328 2026-10-25 09:20:00 2026-10-26 12:40:00            0
+GUA-T8-S3     v2.1        SKF         7.1 2024-01-15 00:00:00 2026-10-25 16:51:00      2267 2026-10-17 18:45:00 2026-10-25 16:50:00           12
+GUA-T8-S3     v3.4        SKF         7.1 2026-10-25 16:51:00             vigente       237 2026-10-25 16:55:00 2026-10-26 12:40:00            0
+HIT-T8-S3     v2.1        SKF         7.1 2024-01-15 00:00:00 2026-10-20 18:00:00       853 2026-10-17 18:45:00 2026-10-20 17:55:00            0
+HIT-T8-S3     v2.1        SKF         7.5 2026-10-20 18:00:00             vigente      1654 2026-10-20 18:00:00 2026-10-26 12:40:00            0
+POR-T4-S3     v2.1        SKF         7.1 2024-01-15 00:00:00 2026-10-20 04:38:00       692 2026-10-17 18:45:00 2026-10-20 04:35:00            0
+POR-T4-S3     v2.1        SKF         7.5 2026-10-20 04:38:00             vigente      1816 2026-10-20 04:40:00 2026-10-26 12:40:00            0
+POR-T4-S4     v2.1        SKF         7.1 2024-01-15 00:00:00 2026-10-18 01:30:00        81 2026-10-17 18:45:00 2026-10-18 01:25:00            0
+POR-T4-S4     v3.9        SKF         7.1 2026-10-18 01:30:00             vigente      2425 2026-10-18 01:30:00 2026-10-26 12:40:00            0
+
+Filas -> sqlite (OLTP): 201,190 | Gold (fact_lecturas): 200,480
 Mediana de 5 ejecuciones tras 1 de calentamiento
 
 Q1. Degradación: vibración diaria en cojinetes, HIT-T3 vs el resto de turbinas
-  sqlite        47.0 ms (4 filas)
-  DuckDB        12.7 ms (4 filas)  -> 3.7x
-Q2. Top 10 turbinas por vibración máxima
-  sqlite        62.6 ms (10 filas)
-  DuckDB         8.0 ms (10 filas)  -> 7.8x
+  sqlite       147.4 ms (10 filas)
+  DuckDB        16.6 ms (10 filas)  -> 8.9x
+Q2. Top 10 turbinas por vibración máxima (priorizar mantenimiento)
+  sqlite       197.5 ms (10 filas)
+  DuckDB        11.1 ms (10 filas)  -> 17.9x
 
 Tabla para el README (docs/benchmark.md):
 | Motor | Consulta | Tiempo |
 |---|---|---|
-| sqlite (OLTP, filas) | Q1. Degradación: vibración diaria en cojinetes, HIT-T3 vs el resto de turbinas | 47.0 ms |
-| DuckDB (columnar, Parquet) | Q1. Degradación: vibración diaria en cojinetes, HIT-T3 vs el resto de turbinas | 12.7 ms (3.7x más rápido) |
-| sqlite (OLTP, filas) | Q2. Top 10 turbinas por vibración máxima | 62.6 ms |
-| DuckDB (columnar, Parquet) | Q2. Top 10 turbinas por vibración máxima | 8.0 ms (7.8x más rápido) |
+| sqlite (OLTP, filas) | Q1. Degradación: vibración diaria en cojinetes, HIT-T3 vs el resto de turbinas | 147.4 ms |
+| DuckDB (columnar, Parquet) | Q1. Degradación: vibración diaria en cojinetes, HIT-T3 vs el resto de turbinas | 16.6 ms (8.9x más rápido) |
+| sqlite (OLTP, filas) | Q2. Top 10 turbinas por vibración máxima (priorizar mantenimiento) | 197.5 ms |
+| DuckDB (columnar, Parquet) | Q2. Top 10 turbinas por vibración máxima (priorizar mantenimiento) | 11.1 ms (17.9x más rápido) |
