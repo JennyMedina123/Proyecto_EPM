@@ -1,0 +1,112 @@
+┌─────────────────────────────────────┐
+│┌───────────────────────────────────┐│
+││    Query Profiling Information    ││
+│└───────────────────────────────────┘│
+└─────────────────────────────────────┘
+EXPLAIN ANALYZE          SELECT             s.ubicacion,             ROUND(MAX(f.temperatura_max), 2)                 AS temp_max_historica,             ROUND(AVG(f.temperatura_promedio), 2)                 AS temp_media_global         FROM fact_lecturas_hora f         JOIN dim_sensor s             ON f.sensor_sk = s.sensor_sk         GROUP BY s.ubicacion         ORDER BY temp_max_historica DESC     
+┌────────────────────────────────────────────────┐
+│┌──────────────────────────────────────────────┐│
+││              Total Time: 0.0136s             ││
+│└──────────────────────────────────────────────┘│
+└────────────────────────────────────────────────┘
+┌───────────────────────────┐
+│           QUERY           │
+└─────────────┬─────────────┘
+┌─────────────┴─────────────┐
+│      EXPLAIN_ANALYZE      │
+│    ────────────────────   │
+│                           │
+│           0 rows          │
+│           0.00s           │
+└─────────────┬─────────────┘
+┌─────────────┴─────────────┐
+│          ORDER_BY         │
+│    ────────────────────   │
+│        round(max(f        │
+│ .temperatura_max), 2) DESC│
+│                           │
+│                           │
+│                           │
+│           4 rows          │
+│           0.00s           │
+└─────────────┬─────────────┘
+┌─────────────┴─────────────┐
+│         PROJECTION        │
+│    ────────────────────   │
+│         ubicacion         │
+│     temp_max_historica    │
+│     temp_media_global     │
+│                           │
+│                           │
+│                           │
+│           4 rows          │
+│           0.00s           │
+└─────────────┬─────────────┘
+┌─────────────┴─────────────┐
+│       HASH_GROUP_BY       │
+│    ────────────────────   │
+│         Groups: #0        │
+│                           │
+│        Aggregates:        │
+│          max(#1)          │
+│          avg(#2)          │
+│                           │
+│                           │
+│                           │
+│           4 rows          │
+│           0.01s           │
+└─────────────┬─────────────┘
+┌─────────────┴─────────────┐
+│         PROJECTION        │
+│    ────────────────────   │
+│         ubicacion         │
+│      temperatura_max      │
+│    temperatura_promedio   │
+│                           │
+│                           │
+│                           │
+│        16,872 rows        │
+│           0.00s           │
+└─────────────┬─────────────┘
+┌─────────────┴─────────────┐
+│         HASH_JOIN         │
+│    ────────────────────   │
+│      Join Type: INNER     │
+│                           │
+│        Conditions:        │
+│   sensor_sk = sensor_sk   ├──────────────┐
+│                           │              │
+│                           │              │
+│                           │              │
+│        16,872 rows        │              │
+│           0.00s           │              │
+└─────────────┬─────────────┘              │
+┌─────────────┴─────────────┐┌─────────────┴─────────────┐
+│         TABLE_SCAN        ││         TABLE_SCAN        │
+│    ────────────────────   ││    ────────────────────   │
+│         Function:         ││         Function:         │
+│        READ_PARQUET       ││        READ_PARQUET       │
+│                           ││                           │
+│        Projections:       ││        Projections:       │
+│         sensor_sk         ││         sensor_sk         │
+│    temperatura_promedio   ││         ubicacion         │
+│      temperatura_max      ││                           │
+│                           ││    Total Files Read: 1    │
+│      Dynamic Filters:     ││                           │
+│ optional: sensor_sk>=1 AND││        Filename(s):       │
+│   optional: sensor_sk<=80 ││ C:/Users/USUARIO/Documents│
+│                           ││       /Proyecto_EPM       │
+│    Total Files Read: 1    ││     /taller3_lakehouse    │
+│                           ││ /lakehouse/gold/dim_sensor│
+│        Filename(s):       ││          .parquet         │
+│ C:/Users/USUARIO/Documents││                           │
+│       /Proyecto_EPM       ││                           │
+│     /taller3_lakehouse    ││                           │
+│      /lakehouse/gold      ││                           │
+│/fact_lecturas_hora.parquet││           0.00s           │
+│                           ││                           │
+│                           ││                           │
+│                           ││                           │
+│        16,872 rows        ││          80 rows          │
+│           0.00s           ││          (0.00s)          │
+└───────────────────────────┘└───────────────────────────┘

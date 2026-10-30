@@ -1,0 +1,115 @@
+┌─────────────────────────────────────┐
+│┌───────────────────────────────────┐│
+││    Query Profiling Information    ││
+│└───────────────────────────────────┘│
+└─────────────────────────────────────┘
+EXPLAIN ANALYZE          SELECT             t.fecha,             SUM(f.alertas_criticas) AS total_alertas,             ROUND(AVG(f.vibracion_promedio), 2) AS vib_media         FROM fact_lecturas_hora f         JOIN dim_tiempo t             ON f.tiempo_sk = t.tiempo_sk         WHERE t.fecha >= DATE '2026-10-17'           AND t.fecha <= DATE '2026-10-26'         GROUP BY t.fecha         ORDER BY total_alertas DESC         LIMIT 5     
+┌────────────────────────────────────────────────┐
+│┌──────────────────────────────────────────────┐│
+││              Total Time: 0.0100s             ││
+│└──────────────────────────────────────────────┘│
+└────────────────────────────────────────────────┘
+┌───────────────────────────┐
+│           QUERY           │
+└─────────────┬─────────────┘
+┌─────────────┴─────────────┐
+│      EXPLAIN_ANALYZE      │
+│    ────────────────────   │
+│                           │
+│           0 rows          │
+│           0.00s           │
+└─────────────┬─────────────┘
+┌─────────────┴─────────────┐
+│           TOP_N           │
+│    ────────────────────   │
+│           Top: 5          │
+│                           │
+│         Order By:         │
+│  sum(f.alertas_criticas)  │
+│            DESC           │
+│                           │
+│                           │
+│                           │
+│           5 rows          │
+│           0.00s           │
+└─────────────┬─────────────┘
+┌─────────────┴─────────────┐
+│         PROJECTION        │
+│    ────────────────────   │
+│           fecha           │
+│       total_alertas       │
+│         vib_media         │
+│                           │
+│                           │
+│                           │
+│          10 rows          │
+│           0.00s           │
+└─────────────┬─────────────┘
+┌─────────────┴─────────────┐
+│   PERFECT_HASH_GROUP_BY   │
+│    ────────────────────   │
+│         Groups: #0        │
+│                           │
+│        Aggregates:        │
+│          sum(#1)          │
+│          avg(#2)          │
+│                           │
+│                           │
+│                           │
+│          10 rows          │
+│           0.00s           │
+└─────────────┬─────────────┘
+┌─────────────┴─────────────┐
+│         PROJECTION        │
+│    ────────────────────   │
+│           fecha           │
+│      alertas_criticas     │
+│     vibracion_promedio    │
+│                           │
+│                           │
+│                           │
+│        16,872 rows        │
+│           0.00s           │
+└─────────────┬─────────────┘
+┌─────────────┴─────────────┐
+│         HASH_JOIN         │
+│    ────────────────────   │
+│      Join Type: INNER     │
+│                           │
+│        Conditions:        │
+│   tiempo_sk = tiempo_sk   ├──────────────┐
+│                           │              │
+│                           │              │
+│                           │              │
+│        16,872 rows        │              │
+│           0.00s           │              │
+└─────────────┬─────────────┘              │
+┌─────────────┴─────────────┐┌─────────────┴─────────────┐
+│         TABLE_SCAN        ││         TABLE_SCAN        │
+│    ────────────────────   ││    ────────────────────   │
+│         Function:         ││         Function:         │
+│        READ_PARQUET       ││        READ_PARQUET       │
+│                           ││                           │
+│        Projections:       ││        Projections:       │
+│         tiempo_sk         ││         tiempo_sk         │
+│     vibracion_promedio    ││           fecha           │
+│      alertas_criticas     ││                           │
+│                           ││    Total Files Read: 1    │
+│      Dynamic Filters:     ││                           │
+│ optional: tiempo_sk>=1 AND││        Filename(s):       │
+│  optional: tiempo_sk<=211 ││ C:/Users/USUARIO/Documents│
+│                           ││       /Proyecto_EPM       │
+│    Total Files Read: 1    ││     /taller3_lakehouse    │
+│                           ││ /lakehouse/gold/dim_tiempo│
+│        Filename(s):       ││          .parquet         │
+│ C:/Users/USUARIO/Documents││                           │
+│       /Proyecto_EPM       ││                           │
+│     /taller3_lakehouse    ││                           │
+│      /lakehouse/gold      ││                           │
+│/fact_lecturas_hora.parquet││           0.00s           │
+│                           ││                           │
+│                           ││                           │
+│                           ││                           │
+│        16,872 rows        ││          211 rows         │
+│           0.00s           ││          (0.00s)          │
+└───────────────────────────┘└───────────────────────────┘

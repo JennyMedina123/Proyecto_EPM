@@ -1,0 +1,190 @@
+┌─────────────────────────────────────┐
+│┌───────────────────────────────────┐│
+││    Query Profiling Information    ││
+│└───────────────────────────────────┘│
+└─────────────────────────────────────┘
+EXPLAIN ANALYZE          WITH tiempo_filtrado AS (             SELECT tiempo_sk, anio, mes             FROM dim_tiempo             WHERE mes = 10               AND anio = 2026         )         SELECT             tb.codigo AS turbina,             t.anio,             t.mes,             SUM(f.alertas_criticas) AS total_alertas         FROM tiempo_filtrado t         JOIN fact_lecturas_hora f             ON f.tiempo_sk = t.tiempo_sk         JOIN dim_turbina tb             ON f.turbina_sk = tb.turbina_sk         GROUP BY tb.codigo, t.anio, t.mes         ORDER BY total_alertas DESC, turbina ASC     
+┌────────────────────────────────────────────────┐
+│┌──────────────────────────────────────────────┐│
+││              Total Time: 0.0213s             ││
+│└──────────────────────────────────────────────┘│
+└────────────────────────────────────────────────┘
+┌───────────────────────────┐
+│           QUERY           │
+└─────────────┬─────────────┘
+┌─────────────┴─────────────┐
+│      EXPLAIN_ANALYZE      │
+│    ────────────────────   │
+│                           │
+│           0 rows          │
+│           0.00s           │
+└─────────────┬─────────────┘
+┌─────────────┴─────────────┐
+│         PROJECTION        │
+│    ────────────────────   │
+│             #0            │
+│__internal_decompress_integ│
+│   ral_integer(#1, 2026)   │
+│__internal_decompress_integ│
+│    ral_integer(#2, 10)    │
+│             #3            │
+│                           │
+│                           │
+│                           │
+│          20 rows          │
+│           0.00s           │
+└─────────────┬─────────────┘
+┌─────────────┴─────────────┐
+│          ORDER_BY         │
+│    ────────────────────   │
+│  sum(f.alertas_criticas)  │
+│            DESC           │
+│       tb.codigo ASC       │
+│                           │
+│                           │
+│                           │
+│          20 rows          │
+│           0.00s           │
+└─────────────┬─────────────┘
+┌─────────────┴─────────────┐
+│         PROJECTION        │
+│    ────────────────────   │
+│             #0            │
+│__internal_compress_integra│
+│    l_utinyint(#1, 2026)   │
+│__internal_compress_integra│
+│     l_utinyint(#2, 10)    │
+│             #3            │
+│                           │
+│                           │
+│                           │
+│          20 rows          │
+│           0.00s           │
+└─────────────┬─────────────┘
+┌─────────────┴─────────────┐
+│         PROJECTION        │
+│    ────────────────────   │
+│             #0            │
+│__internal_decompress_integ│
+│   ral_integer(#1, 2026)   │
+│__internal_decompress_integ│
+│    ral_integer(#2, 10)    │
+│             #3            │
+│                           │
+│                           │
+│                           │
+│          20 rows          │
+│           0.00s           │
+└─────────────┬─────────────┘
+┌─────────────┴─────────────┐
+│       HASH_GROUP_BY       │
+│    ────────────────────   │
+│          Groups:          │
+│             #0            │
+│             #1            │
+│             #2            │
+│                           │
+│    Aggregates: sum(#3)    │
+│                           │
+│                           │
+│                           │
+│          20 rows          │
+│           0.02s           │
+└─────────────┬─────────────┘
+┌─────────────┴─────────────┐
+│         PROJECTION        │
+│    ────────────────────   │
+│           codigo          │
+│            anio           │
+│            mes            │
+│      alertas_criticas     │
+│                           │
+│                           │
+│                           │
+│        16,872 rows        │
+│           0.00s           │
+└─────────────┬─────────────┘
+┌─────────────┴─────────────┐
+│         PROJECTION        │
+│    ────────────────────   │
+│__internal_compress_integra│
+│    l_utinyint(#1, 2026)   │
+│__internal_compress_integra│
+│     l_utinyint(#2, 10)    │
+│             #0            │
+│             #3            │
+│                           │
+│                           │
+│                           │
+│        16,872 rows        │
+│           0.00s           │
+└─────────────┬─────────────┘
+┌─────────────┴─────────────┐
+│         HASH_JOIN         │
+│    ────────────────────   │
+│      Join Type: INNER     │
+│                           │
+│        Conditions:        │
+│  turbina_sk = turbina_sk  ├───────────────────────────────────────────┐
+│                           │                                           │
+│                           │                                           │
+│                           │                                           │
+│        16,872 rows        │                                           │
+│           0.00s           │                                           │
+└─────────────┬─────────────┘                                           │
+┌─────────────┴─────────────┐                             ┌─────────────┴─────────────┐
+│         HASH_JOIN         │                             │         TABLE_SCAN        │
+│    ────────────────────   │                             │    ────────────────────   │
+│      Join Type: INNER     │                             │         Function:         │
+│                           │                             │        READ_PARQUET       │
+│        Conditions:        │                             │                           │
+│   tiempo_sk = tiempo_sk   │                             │        Projections:       │
+│                           │                             │         turbina_sk        │
+│                           │                             │           codigo          │
+│                           │                             │                           │
+│                           │                             │    Total Files Read: 1    │
+│           0.00s           │                             │                           │
+│                           ├──────────────┐              │        Filename(s):       │
+│                           │              │              │ C:/Users/USUARIO/Documents│
+│                           │              │              │       /Proyecto_EPM       │
+│                           │              │              │     /taller3_lakehouse    │
+│                           │              │              │      /lakehouse/gold      │
+│                           │              │              │    /dim_turbina.parquet   │
+│                           │              │              │                           │
+│                           │              │              │                           │
+│                           │              │              │                           │
+│        16,872 rows        │              │              │          20 rows          │
+│          (0.00s)          │              │              │           0.00s           │
+└─────────────┬─────────────┘              │              └───────────────────────────┘
+┌─────────────┴─────────────┐┌─────────────┴─────────────┐
+│         TABLE_SCAN        ││         TABLE_SCAN        │
+│    ────────────────────   ││    ────────────────────   │
+│         Function:         ││         Function:         │
+│        READ_PARQUET       ││        READ_PARQUET       │
+│                           ││                           │
+│        Projections:       ││        Projections:       │
+│         tiempo_sk         ││         tiempo_sk         │
+│         turbina_sk        ││            anio           │
+│      alertas_criticas     ││            mes            │
+│                           ││                           │
+│      Dynamic Filters:     ││    Total Files Read: 1    │
+│ optional: tiempo_sk>=1 AND││                           │
+│  optional: tiempo_sk<=211 ││        Filename(s):       │
+│  optional: turbina_sk>=1  ││ C:/Users/USUARIO/Documents│
+│  AND optional: turbina_sk<││       /Proyecto_EPM       │
+│            =20            ││     /taller3_lakehouse    │
+│                           ││ /lakehouse/gold/dim_tiempo│
+│    Total Files Read: 1    ││          .parquet         │
+│                           ││                           │
+│        Filename(s):       ││                           │
+│ C:/Users/USUARIO/Documents││                           │
+│       /Proyecto_EPM       ││                           │
+│     /taller3_lakehouse    ││           0.00s           │
+│      /lakehouse/gold      ││                           │
+│/fact_lecturas_hora.parquet││                           │
+│                           ││                           │
+│                           ││                           │
+│                           ││                           │
+│        16,872 rows        ││          211 rows         │
+│           0.00s           ││          (0.00s)          │
+└───────────────────────────┘└───────────────────────────┘
