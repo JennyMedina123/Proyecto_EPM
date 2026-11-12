@@ -20,7 +20,7 @@ def extraer_desde_cassandra(duck):
     cluster = Cluster(['127.0.0.1'], port=9042)
     session = cluster.connect('epm_iot')
 
-    # Extracción siguiendo las directrices del Taller 3[cite: 15]
+    # Extracción siguiendo las directrices del Taller 3
     print("  Consultando lecturas en Cassandra...")
     rows = session.execute('SELECT * FROM lecturas_sensor')
     df = pd.DataFrame(list(rows))

@@ -11,12 +11,24 @@ Proyecto IoT Industrial EPM · Mini-Lakehouse · capa Gold en Parquet
 | Medición | 3 calentamientos + 5 ejecuciones por ronda, 3 rondas con orden rotado; mediana de 15 mediciones |
 | Evidencia | `docs/performance/plan_baseline_*.txt`, `docs/performance/benchmark_resumen.csv` |
 
+## Consultas analizadas y su origen en el M3
+
+Las tres consultas provienen de las consultas analíticas del M3 (`scripts/analyze.py`). Q2 es idéntica. A Q1 y Q3 se les añadió un filtro temporal que representa su uso real (reporte de un mes, rango de días); Q1 además omite la columna de temperatura promedio y el `LIMIT 5`.
+
+| Consulta | Origen en el M3 | Cambio respecto al M3 |
+|---|---|---|
+| Q1_Alertas_Mes | Q1 de `analyze.py` | + `WHERE t.mes = 10 AND t.anio = 2026`; sin `temp_promedio_mensual` ni `LIMIT 5` |
+| Q2_Comportamiento_Termico | Q2 de `analyze.py` | Ninguno |
+| Q3_Dias_Inestabilidad | Q3 de `analyze.py` | + `WHERE t.fecha >= DATE '2026-10-17' AND t.fecha <= DATE '2026-10-26'` |
+
+Con los datos de prueba esos filtros abarcan todo el rango disponible; ese hecho es parte central del diagnóstico.
+
 ## Revisión de los 5 indicadores
 
 | Indicador | ¿Aparece? | Evidencia en los planes |
 |---|---|---|
 | 1. Acceso secuencial en tabla grande | **Sí, en Q1, Q2 y Q3** | El TABLE_SCAN de la fact emite 16.872 filas; las consultas devuelven 20, 4 y 5 |
-| 2. Cardinalidad estimada muy alejada de la real | **No** en Q1, Q2 y Q3 | En el scan de la fact, estimadas = reales = 16.872. Solo aparece en la consulta sonda Q3S (estimadas 16.872, reales 1.040): el optimizador no anticipa el filtro dinámico que llega desde el join |
+| 2. Cardinalidad estimada muy alejada de la real | **Sí en Q2, sin efecto en el plan** | En el scan de la fact, estimadas = reales = 16.872 en Q1, Q2 y Q3. En Q2 el HASH_GROUP_BY estimó 80 grupos y produjo 4 ubicaciones (20×, sobre el umbral de 10×); no alteró ninguna decisión, porque Hash Group By es el algoritmo adecuado para cualquier número de grupos. En la consulta sonda Q3S el scan estimó 16.872 filas y emitió 1.040 (16×): el optimizador no anticipa el filtro dinámico que llega desde el join. Fuente: perfil JSON de DuckDB |
 | 3. Algoritmo de JOIN ineficiente | **No** | Todos los joins son HASH_JOIN con la dimensión como lado de construcción; no hay NESTED_LOOP_JOIN ni CROSS_PRODUCT |
 | 4. Data skipping ausente | **Sí, en Q1 y Q3** | `Row Groups Scanned: 1 / 1`. Con un único row group cuyas estadísticas cubren `tiempo_sk` 1–211, ningún filtro temporal puede descartar datos. Q3 (10 días) y Q3S (1 día) leen los mismos 149.089 bytes |
 | 5. Conversión implícita de tipos | **No** | `anio` y `mes` son enteros comparados con enteros; `fecha` es DATE comparada con `DATE '...'`. Las conversiones `CAST` / `__internal_compress_integral` del plan son compresiones internas de DuckDB, no conversiones sobre la columna filtrada |
@@ -43,7 +55,7 @@ Proyecto IoT Industrial EPM · Mini-Lakehouse · capa Gold en Parquet
 | Motor usado | DuckDB 2.0.0 sobre Parquet |
 | Operador más costoso | **TABLE_SCAN** de la fact. En el plan de texto todos los operadores marcan 0 µs (por debajo de la resolución del formato), por lo que el criterio es el trabajo realizado: es el único operador que lee datos de disco (182,7 KB, columnas `sensor_sk`, `temperatura_max`, `temperatura_promedio`) y el que produce más filas (16.872); en el perfil JSON detallado es también el de mayor tiempo (~1 ms) |
 | Problema identificado | **Acceso secuencial completo inherente a la consulta.** Q2 no tiene WHERE: calcula un máximo y un promedio sobre toda la historia. Leer el 100 % de la fact es lo que la consulta pide, no una ineficiencia del motor. El HASH_JOIN con `dim_sensor` (80 filas) es el algoritmo correcto |
-| Indicador que lo revela | **Indicador 1** (16.872 leídas → 4 devueltas). **Ninguna intervención del catálogo aplica**: I-1 a I-6 reducen lecturas cuando existe un filtro. La solución es de diseño (pre-agregación) y se trata en la reflexión arquitectural |
+| Indicador que lo revela | **Indicador 1** (16.872 leídas → 4 devueltas); el **indicador 2** aparece en el HASH_GROUP_BY (80 grupos estimados, 4 reales) sin efecto en el plan. **Ninguna intervención del catálogo aplica**: I-1 a I-6 reducen lecturas cuando existe un filtro. La solución es de diseño (pre-agregación) y se trata en la reflexión arquitectural |
 
 ## Q3 — Días con mayor inestabilidad
 
@@ -67,7 +79,7 @@ En Q2 y Q3 el plan reporta 8,3 ms y 6,4 ms de tiempo total, pero todos sus opera
 | Query | Problema | Indicador | Intervención |
 |---|---|---|---|
 | Q1 | Scan completo; filtro no selectivo; 1 row group | 1 (causa: 4) | **I-3** — ordenar por `tiempo_sk` con row groups pequeños |
-| Q2 | Scan completo inherente (sin WHERE) | 1 | Ninguna del catálogo; se justifica y se discute en la reflexión |
+| Q2 | Scan completo inherente (sin WHERE) | 1 (y 2, sin efecto) | Ninguna del catálogo; se justifica y se discute en la reflexión |
 | Q3 | Scan completo; filtro no selectivo; 1 row group | 1 (causa: 4) | **I-3** — misma intervención que Q1 |
 
 Como los filtros de Q1 y Q3 abarcan todos los datos existentes, **se espera que I-3 no reduzca sus lecturas**. Para verificar que la técnica funciona cuando el filtro sí es selectivo, se incluye la consulta sonda **Q3S** (Q3 restringida al 26 de octubre). Se descartó la reescritura con CTE de la entrega anterior: no corresponde a ningún indicador y su plan resultó idéntico al original.

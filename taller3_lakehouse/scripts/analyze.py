@@ -58,7 +58,7 @@ def main():
     for t in TABLAS_GOLD:
         con.execute(f"CREATE VIEW {t} AS SELECT * FROM read_parquet('{cfg.ruta_sql(cfg.GOLD / (t + '.parquet'))}')")
 
-    titulo("5 Consultas Analíticas sobre Gold (DuckDB Columnar)[cite: 23]")
+    titulo("5 Consultas Analíticas sobre Gold (DuckDB Columnar)")
     for nombre, query in CONSULTAS_DUCKDB.items():
         t0 = time.time()
         df = con.execute(query).fetchdf()
@@ -66,7 +66,7 @@ def main():
         print(f"\n[{nombre}] - {elapsed:.1f} ms")
         print(df.to_string(index=False))
 
-    titulo("Benchmark: Motor Transaccional (Cassandra) vs Analítico (DuckDB)[cite: 24, 28]")
+    titulo("Benchmark: Motor Transaccional (Cassandra) vs Analítico (DuckDB)")
     # Simulamos el conteo global y promedio, una operación costosa en Cassandra (Full Scan).
     query_analitica_cruda = "SELECT AVG(vibracion) AS vib_promedio FROM lecturas_sensor" # Pseudo-código para el benchmark
 
@@ -88,11 +88,11 @@ def main():
     df_duck = con.execute("SELECT AVG(vibracion_promedio) FROM fact_lecturas_hora").fetchdf()
     tiempo_duckdb_ms = (time.time() - t_duck) * 1000
 
-    print(f"\nResultados del Benchmark[cite: 28]:")
+    print(f"\nResultados del Benchmark:")
     print(f"Cassandra (Lectura fila a fila + RAM) : {tiempo_cassandra_ms:.1f} ms")
     print(f"DuckDB (Escaneo Columnar Parquet)     : {tiempo_duckdb_ms:.1f} ms")
     if tiempo_duckdb_ms > 0:
-        print(f"Factor de mejora DuckDB               : {tiempo_cassandra_ms / tiempo_duckdb_ms:.1f}x más rápido[cite: 25]")
+        print(f"Factor de mejora DuckDB               : {tiempo_cassandra_ms / tiempo_duckdb_ms:.1f}x más rápido")
 
 if __name__ == "__main__":
     main()

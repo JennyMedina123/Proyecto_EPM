@@ -33,11 +33,11 @@ def transformar_silver():
     if "turbina_id" in df.columns:
         df["turbina_id"] = df["turbina_id"].astype("string").str.strip().str.lower()
 
-    # 2. Convertir y tipar fechas correctamente[cite: 17]
+    # 2. Convertir y tipar fechas correctamente
     df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
     df["fecha"] = df["timestamp"].dt.date
 
-    # 3. Limpiar y validar las mediciones (-999 a nulo)[cite: 17]
+    # 3. Limpiar y validar las mediciones (-999 a nulo)
     metricas = ["temperatura", "presion", "vibracion"]
     for columna in metricas:
         df[columna] = pd.to_numeric(df[columna], errors="coerce")
@@ -49,14 +49,14 @@ def transformar_silver():
         fuera_de_rango = (df[columna] < minimo) | (df[columna] > maximo)
         df.loc[fuera_de_rango, columna] = float("nan")
 
-    # 4. Eliminar filas con identificador inválido (obligatorio para la calidad)[cite: 17]
+    # 4. Eliminar filas con identificador inválido (obligatorio para la calidad)
     validos = df.loc[~(df["sensor_id"].isna() | df["timestamp"].isna())].copy()
 
     # 5. Detectar sensores huerfanos (No registrados en catálogo)
     sensores_conocidos = leer_catalogo_sensores()
     silver = validos.loc[validos["sensor_id"].isin(sensores_conocidos)].copy()
 
-    # 6. Eliminar duplicados exactos[cite: 18]
+    # 6. Eliminar duplicados exactos
     filas_antes = len(silver)
     silver = silver.drop_duplicates(subset=["sensor_id", "timestamp"], keep="first").reset_index(drop=True)
 
