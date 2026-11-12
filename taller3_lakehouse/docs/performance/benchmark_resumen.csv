@@ -1,0 +1,5 @@
+﻿consulta,motor,filas_devueltas,row_groups_baseline,filas_scan_baseline,filas_estimadas_baseline,rg_leidos_baseline,rg_totales_baseline,bytes_baseline,t_baseline_ms,row_groups_single_rg,filas_scan_single_rg,filas_estimadas_single_rg,rg_leidos_single_rg,rg_totales_single_rg,bytes_single_rg,t_single_rg_ms,row_groups_sorted,filas_scan_sorted,filas_estimadas_sorted,rg_leidos_sorted,rg_totales_sorted,bytes_sorted,t_sorted_ms,factor_total,factor_aislado
+Q1_Alertas_Mes,DuckDB 2.0.0,20,1,16872,16872,1,1,38374,11.352,1,16872,16872,1,1,38218,10.852,9,16872,16872,9,9,40694,11.506,0.99,0.94
+Q2_Comportamiento_Termico,DuckDB 2.0.0,4,1,16872,16872,1,1,182728,7.922,1,16872,16872,1,1,166486,7.004,9,16872,16872,9,9,210213,7.494,1.06,0.93
+Q3_Dias_Inestabilidad,DuckDB 2.0.0,5,1,16872,16872,1,1,149089,5.833,1,16872,16872,1,1,137370,6.515,9,16872,16872,9,9,433055,5.994,0.97,1.09
+Q3S_Filtro_Un_Dia,DuckDB 2.0.0,1,1,1040,16872,1,1,149089,5.391,1,1040,16872,1,1,137370,4.863,9,1040,16872,2,9,66440,5.736,0.94,0.85

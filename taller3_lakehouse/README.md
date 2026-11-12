@@ -1,6 +1,6 @@
 # Telemetría IoT EPM — Mini-Lakehouse
 
-Taller 3 · Tópicos Avanzados en Bases de Datos · ITM 2026
+Talleres 3 y 4 · Tópicos Avanzados en Bases de Datos · ITM 2026
 
 ## Descripción
 
@@ -16,11 +16,13 @@ con zonas Bronze / Silver / Gold en Parquet, consultado con DuckDB.
 | Silver | Jenny Elizabeth Medina | Implementado y validado | `transform_silver.py` |
 | Gold | Andrés Valderrama Acero | Implementado y validado | `transform_gold.py` |
 | Análisis y benchmark | Andrés Valderrama Acero | Implementado y validado | `analyze.py` |
+| Rendimiento de consultas (diagnóstico e intervención) | Equipo | Implementado y validado | `query_catalog.py`, `layout_optimizer.py`, `query_benchmark.py`, `result_validator.py` |
 
 ## Requisitos
 
 - Python 3.10 o superior
-- No necesita ninguna base de datos instalada: la fuente operacional se simula en SQLite.
+- La fuente operacional del pipeline es Cassandra (`127.0.0.1:9042`, ver `main.py`).
+- El análisis de rendimiento solo necesita `duckdb` y los Parquet de `lakehouse/gold/` (no requiere Cassandra ni pyarrow).
 
 ## Cómo ejecutar
 
@@ -59,7 +61,9 @@ Parámetros (variables de entorno): `EPM_FRECUENCIA_MIN` (5), `EPM_DIAS_INICIALE
 ├── lakehouse/
 │   ├── bronze/               datos crudos en Parquet
 │   ├── silver/               datos limpios, cuarentenas e informes
-│   └── gold/                 modelo estrella en Parquet
+│   ├── gold/                 modelo estrella en Parquet
+│   ├── gold_single_rg/       fact reescrita en 1 row group (control; generada)
+│   └── gold_sorted/          fact ordenada en row groups de ~2.000 filas (generada)
 ├── oltp/                     base operacional simulada
 ├── scripts/
 │   ├── config.py             rutas y parámetros compartidos
@@ -69,12 +73,19 @@ Parámetros (variables de entorno): `EPM_FRECUENCIA_MIN` (5), `EPM_DIAS_INICIALE
 │   ├── verificar_bronze.py   controles de calidad de Bronze
 │   ├── transform_silver.py   transformación Bronze -> Silver
 │   ├── transform_gold.py     transformación Silver -> Gold (modelo dimensional)
-│   └── analyze.py            consultas analíticas + benchmark
+│   ├── analyze.py            consultas analíticas + benchmark
+│   ├── verificar_rango_gold.py  rango temporal de dim_tiempo
+│   ├── query_catalog.py      consultas de rendimiento y utilidades de perfilamiento
+│   ├── layout_optimizer.py   genera los layouts físicos alternativos de la fact
+│   ├── query_benchmark.py    planes EXPLAIN ANALYZE y latencia por layout
+│   └── result_validator.py   verifica resultados idénticos entre layouts
 ├── docs/
 │   ├── perfil_bronze.txt     perfil de calidad de Bronze
 │   ├── modelo_dimensional.png  diagrama del modelo estrella
 │   ├── resultados_consultas.txt  salida de las consultas analíticas
 │   ├── benchmark.md / .csv   resultados del benchmark
+│   ├── diagnostico_baseline.md  diagnóstico de las consultas (indicadores y problema)
+│   └── performance/          planes de ejecución y resultados por layout
 ├── main.py                  ejecuta el pipeline
 └── requirements.txt
 ```
@@ -312,6 +323,45 @@ con el volumen, porque el costo del escaneo por filas aumenta con cada registro 
 *Resultados de una ejecución con `python main.py --reset` (3 días de historia); los tiempos varían
 ligeramente entre ejecuciones y según la máquina.*
 
+## Rendimiento de consultas
+
+Diagnóstico e intervención sobre tres consultas analíticas de Gold, sin modificar la arquitectura:
+los layouts alternativos se escriben en carpetas aparte y se comparan con exactamente el mismo SQL.
+
+| Consulta | Qué responde |
+|---|---|
+| `Q1_Alertas_Mes` | Alertas críticas por turbina en octubre de 2026 |
+| `Q2_Comportamiento_Termico` | Temperatura máxima y promedio por ubicación del sensor |
+| `Q3_Dias_Inestabilidad` | Los 5 días con más alertas y su vibración media |
+| `Q3S_Filtro_Un_Dia` | Sonda: Q3 restringida a un solo día (filtro selectivo) |
+
+Layouts de la tabla de hechos que se comparan:
+
+| Layout | Ubicación | Descripción |
+|---|---|---|
+| `baseline` | `lakehouse/gold/` | Gold del pipeline (pyarrow), 1 row group |
+| `single_rg` | `lakehouse/gold_single_rg/` | Control: reescrita por DuckDB, 1 row group |
+| `sorted` | `lakehouse/gold_sorted/` | Ordenada por `tiempo_sk`, row groups de ~2.000 filas |
+
+Ejecución (desde `taller3_lakehouse/`, con el entorno virtual activo):
+
+```bash
+python scripts/verificar_rango_gold.py   # rango temporal de los datos
+python scripts/layout_optimizer.py       # genera gold_single_rg/ y gold_sorted/
+python scripts/query_benchmark.py        # planes + latencia -> docs/performance/
+python scripts/result_validator.py       # resultados idénticos entre layouts
+```
+
+Resultados principales (DuckDB 2.0.0; detalle en `docs/diagnostico_baseline.md` y `docs/performance/`):
+
+- Las tres consultas leen la fact completa (16.872 filas) y la fact tiene un solo row group, por lo que
+  ningún filtro temporal puede descartar datos (`Row Groups Scanned: 1 / 1`).
+- Con el layout `sorted`, la consulta selectiva Q3S lee **2 de 9** row groups y la mitad de bytes
+  (137 KB -> 66 KB). Q1–Q3 no se benefician porque sus filtros abarcan todos los datos, y leen más bytes
+  porque los row groups pequeños comprimen peor (archivo de 369 KB -> 473 KB).
+- Con este volumen la latencia (5–12 ms) está dominada por costos fijos del motor; las diferencias entre
+  layouts quedan dentro del ruido de medición.
+
 ## Integración con el pipeline
 
 El archivo `main.py` ejecuta en orden: simulación OLTP, extracción a Bronze, verificación de Bronze,
@@ -321,6 +371,7 @@ Silver, Gold y análisis/benchmark.
 
 - Silver se reescribe completo en cada corrida (no es incremental como Bronze).
 - Gold se reconstruye por completo; con mucho más volumen convendría agregar por hora o particionar por fecha.
+- El tamaño de row group de la fact (`row_group_size=100_000`) supera el volumen actual, lo que impide el data skipping; con años de datos convendría particionar por año/mes y ajustar el tamaño de row group.
 - `dim_tiempo` está a nivel de timestamp; podría separarse en `dim_fecha` y `dim_hora`.
 - Posibles extensiones: dbt sobre DuckDB, tablero en Metabase o Delta Lake para ACID y *time travel*.
 

@@ -1,8 +1,15 @@
+﻿"""
+verificar_rango_gold.py
+
+Rango temporal cubierto por la capa Gold: fecha inicial y final de
+dim_tiempo, total de horas registradas y días distintos.
+"""
+
 import sys
 from pathlib import Path
 import duckdb
 
-sys.path.insert(0, str(Path(__file__).resolve().parent / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 import config as cfg
 
 con = duckdb.connect()
