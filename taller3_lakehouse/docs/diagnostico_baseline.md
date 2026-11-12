@@ -31,7 +31,7 @@ Proyecto IoT Industrial EPM · Mini-Lakehouse · capa Gold en Parquet
 | Tiempo baseline (mediana) | **11,35 ms** |
 | Motor usado | DuckDB 2.0.0 sobre Parquet |
 | Operador más costoso | **HASH_JOIN** entre la fact pre-agregada y `dim_tiempo`: **10,0 ms de 17,1 ms** del plan (el resto de operadores marca 0 µs). DuckDB 2.0 aplica *partial aggregate pushdown*: agrupa la fact por (`tiempo_sk`, turbina) antes del join (16.872 → 4.218 filas) |
-| Problema identificado | **Acceso secuencial completo por un filtro no selectivo.** Las 211 filas de `dim_tiempo` cumplen `mes = 10 AND anio = 2026`; DuckDB lo detecta con las estadísticas min/max y elimina el filtro (el scan de `dim_tiempo` no muestra filtro sobre `mes` ni `anio`). El filtro dinámico que llega a la fact (`tiempo_sk >= 1 AND tiempo_sk <= 211`) cubre todo el rango, y con un único row group se leen las 16.872 filas para devolver 20 |
+| Problema identificado | **Acceso secuencial completo por un filtro no selectivo.** Las 211 filas de `dim_tiempo` cumplen `mes = 10 AND anio = 2026`; DuckDB lo detecta con las estadísticas min/max y elimina el filtro (el scan de `dim_tiempo` no muestra filtro sobre `mes` ni `anio`). Como la fact pre-agregada es el lado de construcción del join, el filtro dinámico de tiempo (`tiempo_sk >= 1 AND tiempo_sk <= 211`, el rango completo) viaja hacia `dim_tiempo` y no hacia la fact, que solo recibe un filtro por `turbina_sk`: ningún predicado temporal llega a la fact, y con un único row group se leen las 16.872 filas para devolver 20 |
 | Indicador que lo revela | **Indicador 1** (16.872 filas leídas → 20 devueltas), con causa estructural en el **indicador 4** (`Row Groups Scanned: 1 / 1`) |
 
 ## Q2 — Comportamiento térmico por ubicación del sensor
