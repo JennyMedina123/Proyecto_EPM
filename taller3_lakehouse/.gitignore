@@ -2,3 +2,6 @@
 oltp/
 __pycache__/
 *.pyc
+# Layouts generados por scripts/layout_optimizer.py (reproducibles)
+lakehouse/gold_single_rg/
+lakehouse/gold_sorted/
